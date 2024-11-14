@@ -1,0 +1,69 @@
+{
+  "name": "papaparse-min",
+  "version": "5.3.2",
+  "description": "Minified version of 'papaparse' library.",
+  "main": "papaparse.min.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tjohnston-softdev/papaparse-min.git"
+  },
+  "keywords":
+  [
+	"csv",
+	"parser",
+	"parse",
+    "parsing",
+    "delimited",
+    "text",
+    "data",
+    "auto-detect",
+    "comma",
+    "tab",
+    "pipe",
+    "file",
+    "filereader",
+    "stream",
+    "worker",
+    "workers",
+    "thread",
+    "threading",
+    "multi-threaded",
+    "jquery-plugin",
+	"minified",
+	"min",
+	"minimum",
+	"compiled",
+	"mirror",
+	"legacy",
+	"classic",
+	"compact",
+	"small",
+	"production"
+  ],
+  "contributors":
+  [
+	{
+		"name": "Matthew Holt",
+		"role": "Original developer",
+		"url": "https://twitter.com/mholt6"
+	},
+	{
+		"name": "Sergi Almacellas Abellana",
+		"role": "Current maintainer",
+		"url": "https://www.koolpi.com/"
+	},
+	{
+		"name": "Tyrone Johnston",
+		"role": "Publisher",
+		"url": "https://github.com/tjohnston-softdev"
+	}
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mholt/PapaParse/issues"
+  },
+  "homepage": "https://github.com/tjohnston-softdev/papaparse-min#readme"
+}

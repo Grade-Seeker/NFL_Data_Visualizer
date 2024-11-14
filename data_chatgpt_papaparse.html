@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Data Visualizer</title>
+    <script src="js/papaparse.min.js"></script>
+    <script src="js/chart.js"></script>
+    <style>
+        table {
+            border: none;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        .chart-container {
+            margin-top: 20px;
+            display: none;
+            width: 100%;
+            max-width: 900px; /* 设置最大宽度 */
+            height: 500px;    /* 设置固定高度 */
+            margin: 0 auto;   /* 使容器居中 */
+        }
+        canvas {
+            width: 100% !important;  /* 强制使图表宽度适应容器 */
+            height: 100% !important; /* 强制使图表高度适应容器 */
+        }
+    </style>
+</head>
+<body>
+    <h2>Choose a .txt file (Tab-delimited, UTF-8 encoded)</h2>
+    <input type="file" id="fileInput" accept=".txt">
+    
+    <!-- 显示/隐藏表格的按钮 -->
+    <button id="showTableButton" style="margin-top: 20px;" disabled>Display Table</button>
+    <button id="analyzeDataButton" style="margin-top: 20px;" disabled>Show Charts</button>
+
+    <table id="dataTable" style="margin-top: 20px; display: none;">
+        <thead id="tableHeader"></thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <!-- 用于显示图表的容器 -->
+    <div class="chart-container" id="chartContainer">
+        <canvas id="chart1"></canvas> <!-- 表1：Bar Chart -->
+        <canvas id="chart2"></canvas> <!-- 表2：Scatter Plot -->
+        <canvas id="chart3"></canvas> <!-- 表3：Line Graph -->
+    </div>
+
+    <script>
+        let parsedData = null;
+        let chart1 = null;
+        let chart2 = null;
+        let chart3 = null;
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                delimiter: "\t",     // 制表符分隔
+                header: true,        // 使用第一行作为表头
+                encoding: "UTF-8",   // 以 UTF-8 读取
+                complete: function(results) {
+                    parsedData = results.data;
+                    console.log("Parsed Data:", parsedData);  // 输出数据
+                    
+                    document.getElementById('showTableButton').disabled = false;
+                    document.getElementById('analyzeDataButton').disabled = false;
+                }
+            });
+        });
+
+        // 显示或隐藏表格
+        document.getElementById('showTableButton').addEventListener('click', function() {
+            const table = document.getElementById('dataTable');
+            if (table.style.display === 'none') {
+                displayData(parsedData);
+                table.style.display = 'block'; 
+                this.textContent = 'Hide Table'; 
+            } else {
+                table.style.display = 'none';  
+                this.textContent = 'Display Table'; 
+            }
+        });
+
+        // 显示或隐藏图表
+        document.getElementById('analyzeDataButton').addEventListener('click', function() {
+            const chartContainer = document.getElementById('chartContainer');
+
+            // 使用 getComputedStyle 来获取实际的显示状态
+            const displayStyle = window.getComputedStyle(chartContainer).display;
+            
+            if (displayStyle === 'none') {
+                // 先销毁现有图表
+                if (chart1) chart1.destroy();
+                if (chart2) chart2.destroy();
+                if (chart3) chart3.destroy();
+
+                // 生成新的图表
+                generateCharts(parsedData);
+                
+                // 显示图表
+                chartContainer.style.display = 'block';  
+                this.textContent = 'Hide Charts';  
+            } else {
+                // 隐藏图表
+                chartContainer.style.display = 'none';  
+                this.textContent = 'Show Charts'; 
+
+                // 销毁图表实例
+                if (chart1) chart1.destroy();
+                if (chart2) chart2.destroy();
+                if (chart3) chart3.destroy();
+            }
+        });
+
+        // 显示表格数据
+        function displayData(data) {
+            const tableHeader = document.getElementById('tableHeader');
+            const tableBody = document.getElementById('tableBody');
+            tableHeader.innerHTML = "";
+            tableBody.innerHTML = "";
+
+            if (data.length === 0) return;
+
+            const headers = Object.keys(data[0]);
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            tableHeader.appendChild(headerRow);
+
+            data.forEach(row => {
+                const rowElement = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.textContent = row[header];
+                    rowElement.appendChild(td);
+                });
+                tableBody.appendChild(rowElement);
+            });
+        }
+
+        // 生成图表
+        function generateCharts(data) {
+        // 表1: Bar Chart
+        const tdData = data.filter(row => !isNaN(row['TD']));  // 筛选出TD为数字的行
+        tdData.sort((a, b) => b['TD'] - a['TD']);  // 排序，按TD降序排列
+        const top10 = tdData.slice(0, 10);  // 取前10
+        const labels1 = top10.map(row => row['Player']);
+        const data1 = top10.map(row => row['TD']);
+
+        // 表2: Scatter Plot (筛选出FantPos为RB的行)
+        const rbData = data.filter(row => row['FantPos'] === 'RB');
+        const validRBData = rbData.filter(row => !isNaN(row['40 Yard']) && !isNaN(row['TD']));  // 过滤掉无效数据
+        const xValues2 = validRBData.map(row => row['TD']);  // 将TD作为X轴数据
+        const yValues2 = validRBData.map(row => row['40 Yard']);  // 将40 Yard作为Y轴数据
+
+        // 表3: Line Graph (筛选出FantPos为QB的行)
+        const qbData = data.filter(row => row['FantPos'] === 'QB');
+        let qbYears = [...new Set(qbData.map(row => row['Year']))];  // 获取所有年份
+        qbYears.sort((a, b) => a - b);  // 对年份从低到高排序
+        const avgFantPtByYear = qbYears.map(year => {
+            const yearData = qbData.filter(row => row['Year'] === year);
+            const avgFantPt = yearData.reduce((sum, row) => sum + parseFloat(row['FantPt'] || 0), 0) / yearData.length;
+            return avgFantPt;
+        });
+
+        // 表1: 创建 Bar Chart
+        const ctx1 = document.getElementById('chart1').getContext('2d');
+        chart1 = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: labels1,
+                datasets: [{
+                    label: 'Top 10 TD Players',
+                    data: data1,
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true // 保持纵横比
+            }
+        });
+
+        // 表2: 创建 Scatter Plot
+        const ctx2 = document.getElementById('chart2').getContext('2d');
+        chart2 = new Chart(ctx2, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Touch downs vs 40 Yard times for running backs',
+                    data: xValues2.map((x, index) => ({ x, y: yValues2[index] })),
+                    backgroundColor: 'rgb(54, 162, 235)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Touch downs' } // X轴标题改为 "Touch downs"
+                    },
+                    y: {
+                        title: { display: true, text: '40 Yard times' }, // Y轴标题改为 "40 Yard times"
+                        beginAtZero: false // 确保Y轴从0开始
+                    }
+                }
+            }
+        });
+
+        // 表3: 创建 Line Graph
+        const ctx3 = document.getElementById('chart3').getContext('2d');
+        chart3 = new Chart(ctx3, {
+            type: 'line',
+            data: {
+                labels: qbYears,
+                datasets: [{
+                    label: 'Average Fantasy Points by Year (QB)',
+                    data: avgFantPtByYear,
+                    fill: false,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true, // 保持纵横比
+                scales: {
+                    y: {
+                        beginAtZero: true // 确保Y轴从0开始
+                    }
+                }
+            }
+        });
+    }
+    </script>
+</body>
+</html>
